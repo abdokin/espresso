@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include "expression.h"
 using namespace std;
 
 enum TokenType
@@ -142,41 +143,53 @@ private:
     }
     void number()
     {
-        if (currentToken.type == NUMBER)
-        {
-            cout << currentToken.value;
-            match(NUMBER);
-        }
+        Number numb(currentToken.value);
+        match(NUMBER);
+        numb.print();
     }
     void variable()
     {
-        if (currentToken.type == VARIABLE)
-        {
-            cout << currentToken.value;
-            match(VARIABLE);
-        }
+        Variable var(currentToken.value);
+        match(VARIABLE);
+        var.print();
     }
 
     void base()
     {
         // base  → number | variable | '(' expression ')'
-        number();
-        variable();
-        if (currentToken.type == LPARE)
+        switch (currentToken.type)
         {
+        case NUMBER:
+            number();
+            break;
+        case VARIABLE:
+            variable();
+            break;
+        // case LPARE:
+        //     expression();
+        //     break;
+        default:
             cout << "(";
 
             match(LPARE);
             expression();
             match(RPARE);
             cout << ") ";
+            break;
         }
     }
     void exponent()
     {
         // exponent → number | variable
-        number();
-        variable();
+        switch (currentToken.type)
+        {
+        case NUMBER:
+            number();
+            break;
+        default:
+            variable();
+            break;
+        }
     }
 
     void match(TokenType expectedType)
