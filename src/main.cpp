@@ -1,5 +1,5 @@
 #include <iostream>
-#include <optional>  // Add this line for optional
+#include <optional> // Add this line for optional
 #include <cctype>
 using namespace std;
 
@@ -15,7 +15,40 @@ enum TokenType
     DOT,
     LPARE,
     RPARE,
+    END,
+
 };
+
+string tokenTypeToStr(TokenType t)
+{
+    switch (t)
+    {
+    case PLUS:
+        return "PLUS";
+    case MINUS:
+        return "MINUS";
+    case DIVID:
+        return "DIVID";
+    case MULTI:
+        return "MULTI";
+    case POWER:
+        return "POWER";
+    case NUMBE:
+        return "NUMBE";
+    case VARIA:
+        return "VARIA";
+    case DOT:
+        return "DOT";
+    case LPARE:
+        return "LPARE";
+    case RPARE:
+        return "RPARE";
+    case END:
+        return "END";
+    default:
+        return "unkownToken";
+    }
+}
 struct Token
 {
     TokenType type;
@@ -46,7 +79,18 @@ struct Tokenizer
         }
         return false;
     }
-    optional<Token> nextToken()
+    Token advance(Token &t)
+    {
+        char v;
+        if (peek(v) && v != t.value[0])
+        {
+            cout << "[error] Unexpected token advance [expected] char=" << v << "got=" << t.value << endl;
+            exit(EXIT_FAILURE);
+        }
+        next(v);
+        return t;
+    }
+    Token nextToken()
     {
         char currentChar;
 
@@ -55,7 +99,6 @@ struct Tokenizer
         {
             next(currentChar);
         }
-
         Token token;
         token.value = currentChar;
 
@@ -68,21 +111,27 @@ struct Tokenizer
         case '-':
             token.type = MINUS;
             break;
+
         case '*':
             token.type = MULTI;
             break;
+
         case '/':
             token.type = DIVID;
             break;
+
         case '^':
             token.type = POWER;
             break;
+
         case '.':
             token.type = DOT;
             break;
+
         case '(':
             token.type = LPARE;
             break;
+
         case ')':
             token.type = RPARE;
             break;
@@ -97,6 +146,7 @@ struct Tokenizer
                     next(currentChar);
                 }
                 token.type = NUMBE;
+                return token;
             }
             // Check for variables
             else if (isalpha(currentChar) || currentChar == '_')
@@ -107,19 +157,35 @@ struct Tokenizer
                     next(currentChar);
                 }
                 token.type = VARIA;
+                return token;
             }
             else
             {
-                // Invalid character
-                cout << "Error: Invalid character '" << currentChar << "'" << endl;
-                return nullopt;
+                if (position != input.length())
+                {
+                    // Invalid character
+                    cout << "[error]: Invalid character '" << currentChar << "'"
+                         << "at " << position << endl;
+                }
+                else
+                {
+                    token.type = END;
+                    token.value = (char)0;
+                    return token;
+                }
             }
             break;
         }
-
-        return token;
+        return advance(token);
     }
 };
+
+
+struct Lexer
+{
+    
+};
+
 
 int main(int argc, char **argv)
 {
@@ -133,11 +199,13 @@ int main(int argc, char **argv)
     cout << "Expression parser:\n";
 
     Tokenizer tokenizer("3 + 4 * (5 - 2)");
-    char currentChar;
-    while (tokenizer.next(currentChar))
+    Token token = tokenizer.nextToken();
+    while (token.type != END)
     {
         // Process the character
-        cout << "Current character: " << currentChar << endl;
+        cout << "[token] type=" << tokenTypeToStr(token.type) << " value=" << token.value << endl;
+        token = tokenizer.nextToken();
     }
     return 0;
 }
+
