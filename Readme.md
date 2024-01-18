@@ -12,6 +12,33 @@ decimal     → [0-9]+ '.' [0-9]+
 variable    → [a-zA-Z]
 ```
 
+variable {
+    string name;
+}
+number {
+    float value;
+}
+exponent {
+    number | variable;
+}
+base {
+    number | variable | (expr)
+}
+factor {
+    base 
+    exponent?
+}
+term {
+    factor,
+    op,
+    factor
+}
+
+expression {
+    term,
+    op,
+    term
+}
 
 ## Tokens 
 ```

@@ -1,211 +1,235 @@
 #include <iostream>
-#include <optional> // Add this line for optional
-#include <cctype>
+#include <string>
 using namespace std;
 
 enum TokenType
 {
-    PLUS,
-    MINUS,
-    DIVID,
-    MULTI,
-    POWER,
-    NUMBE,
-    VARIA,
-    DOT,
+    END,
     LPARE,
     RPARE,
-    END,
-
+    NUMBER,
+    VARIABLE,
+    PLUS,
+    MINUS,
+    MULTIPLY,
+    EXP,
+    DIVIDE
 };
 
-string tokenTypeToStr(TokenType t)
-{
-    switch (t)
-    {
-    case PLUS:
-        return "PLUS";
-    case MINUS:
-        return "MINUS";
-    case DIVID:
-        return "DIVID";
-    case MULTI:
-        return "MULTI";
-    case POWER:
-        return "POWER";
-    case NUMBE:
-        return "NUMBE";
-    case VARIA:
-        return "VARIA";
-    case DOT:
-        return "DOT";
-    case LPARE:
-        return "LPARE";
-    case RPARE:
-        return "RPARE";
-    case END:
-        return "END";
-    default:
-        return "unkownToken";
-    }
-}
 struct Token
 {
     TokenType type;
     string value;
 };
 
-struct Tokenizer
+class Tokenizer
 {
-    string input;
-    size_t position;
-    Tokenizer(string s) : input(s), position(0){};
-    bool next(char &c)
-    {
-        if (position < input.size())
-        {
-            c = input[position++];
-            return true;
-        }
-        return false;
-    }
+public:
+    Tokenizer(const string &input) : input(input), position(0) {}
 
-    bool peek(char &c)
-    {
-        if (position < input.size())
-        {
-            c = input[position];
-            return true;
-        }
-        return false;
-    }
-    Token advance(Token &t)
-    {
-        char v;
-        if (peek(v) && v != t.value[0])
-        {
-            cout << "[error] Unexpected token advance [expected] char=" << v << "got=" << t.value << endl;
-            exit(EXIT_FAILURE);
-        }
-        next(v);
-        return t;
-    }
     Token nextToken()
     {
-        char currentChar;
-
-        // skip whitespaces
-        while (peek(currentChar) && isspace(currentChar))
+        if (position >= input.length())
         {
-            next(currentChar);
+            return {END, ""};
         }
-        Token token;
-        token.value = currentChar;
 
-        // Tokenize based on the current character
-        switch (currentChar)
+        char currentChar = input[position++];
+
+        if (currentChar == '(')
         {
-        case '+':
-            token.type = PLUS;
-            break;
-        case '-':
-            token.type = MINUS;
-            break;
+            return {LPARE, ""};
+        }
+        else if (currentChar == ')')
+        {
+            return {RPARE, ""};
+        }
+        else if (isdigit(currentChar))
+        {
+            string numberValue;
+            numberValue += currentChar;
+            while (position < input.length() && isdigit(input[position]))
+            {
+                numberValue += input[position++];
+            }
+            return {NUMBER, numberValue};
+        }
+        else if (isalpha(currentChar))
+        {
+            string variableValue;
+            variableValue += currentChar;
+            while (position < input.length() && isalnum(input[position]))
+            {
+                variableValue += input[position++];
+            }
+            return {VARIABLE, variableValue};
+        }
+        else if (currentChar == '+')
+        {
+            return {PLUS, "+"};
+        }
+        else if (currentChar == '-')
+        {
+            return {MINUS, "-"};
+        }
+        else if (currentChar == '*')
+        {
+            return {MULTIPLY, "*"};
+        }
+        else if (currentChar == '/')
+        {
+            return {DIVIDE, "/"};
+        }
+        else if (currentChar == '^')
+        {
+            return {EXP, "^"};
+        }
+        // Ignore other characters
+        return nextToken();
+    }
 
-        case '*':
-            token.type = MULTI;
-            break;
+private:
+    string input;
+    size_t position;
+};
 
-        case '/':
-            token.type = DIVID;
-            break;
+class Parser
+{
+public:
+    Parser(const string &input) : tokenizer(input), currentToken(tokenizer.nextToken()) {}
 
-        case '^':
-            token.type = POWER;
-            break;
+    void parse()
+    {
+        expression();
+    }
 
-        case '.':
-            token.type = DOT;
-            break;
+private:
+    void expression()
+    {
+        // expression  → term ( '+' term | '-' term )*
+        term();
+        while (currentToken.type == PLUS || currentToken.type == MINUS)
+        {
+            Token op = currentToken;
+            match(currentToken.type);
 
-        case '(':
-            token.type = LPARE;
-            break;
+            cout << " " << op.value << " ";
+            term();
+        }
+    }
 
-        case ')':
-            token.type = RPARE;
-            break;
+    void term()
+    {
+        // term        → factor ( '*' factor | '/' factor )*
+        factor();
+        while (currentToken.type == MULTIPLY || currentToken.type == DIVIDE)
+        {
+            Token op = currentToken;
+            match(currentToken.type);
+            cout << " " << op.value << " ";
+            factor();
+        }
+    }
+    void factor()
+    {
+        // factor      → base ( '^' exponent )?
+        base();
+        if (currentToken.type == EXP)
+        {
+            match(EXP);
+            exponent();
+        }
+    }
+    void number()
+    {
+        if (currentToken.type == NUMBER)
+        {
+            cout << currentToken.value;
+            match(NUMBER);
+        }
+    }
+    void variable()
+    {
+        if (currentToken.type == VARIABLE)
+        {
+            cout << currentToken.value;
+            match(VARIABLE);
+        }
+    }
 
+    void base()
+    {
+        // base  → number | variable | '(' expression ')'
+        number();
+        variable();
+        if (currentToken.type == LPARE)
+        {
+            cout << "(";
+
+            match(LPARE);
+            expression();
+            match(RPARE);
+            cout << ") ";
+        }
+    }
+    void exponent()
+    {
+        // exponent → number | variable
+        number();
+        variable();
+    }
+
+    void match(TokenType expectedType)
+    {
+        if (currentToken.type == expectedType)
+        {
+            currentToken = tokenizer.nextToken();
+        }
+        else
+        {
+            cout << "Error: Expected " << tokenTypeToStr(expectedType) << " but got " << tokenTypeToStr(currentToken.type) << endl;
+            // Handle error as needed (throw exception, exit program, etc.)
+        }
+    }
+
+    string tokenTypeToStr(TokenType type)
+    {
+        switch (type)
+        {
+        case END:
+            return "END";
+        case LPARE:
+            return "LPARE";
+        case RPARE:
+            return "RPARE";
+        case NUMBER:
+            return "NUMBER";
+        case VARIABLE:
+            return "VARIABLE";
+        case PLUS:
+            return "PLUS";
+        case MINUS:
+            return "MINUS";
+        case MULTIPLY:
+            return "MULTIPLY";
+        case DIVIDE:
+            return "DIVIDE";
+        case EXP:
+            return "DIVIDE";
         default:
-            // Check for numbers
-            if (isdigit(currentChar))
-            {
-                while (peek(currentChar) && (isdigit(currentChar) || currentChar == '.'))
-                {
-                    token.value += currentChar;
-                    next(currentChar);
-                }
-                token.type = NUMBE;
-                return token;
-            }
-            // Check for variables
-            else if (isalpha(currentChar) || currentChar == '_')
-            {
-                while (peek(currentChar) && (isalpha(currentChar) || isdigit(currentChar) || currentChar == '_'))
-                {
-                    token.value += currentChar;
-                    next(currentChar);
-                }
-                token.type = VARIA;
-                return token;
-            }
-            else
-            {
-                if (position != input.length())
-                {
-                    // Invalid character
-                    cout << "[error]: Invalid character '" << currentChar << "'"
-                         << "at " << position << endl;
-                }
-                else
-                {
-                    token.type = END;
-                    token.value = (char)0;
-                    return token;
-                }
-            }
-            break;
+            return "UNKNOWN";
         }
-        return advance(token);
     }
+
+    Tokenizer tokenizer;
+    Token currentToken;
 };
 
-
-struct Lexer
+int main()
 {
-    
-};
+    string input = "(3 + 5) * x - 2 / (y + 4)";
+    Parser parser(input);
+    parser.parse();
 
-
-int main(int argc, char **argv)
-{
-    char *programm = argv[0];
-    if (argc < 2)
-    {
-        cout << "usage \n"
-             << programm << " <input-file> \n";
-        exit(EXIT_FAILURE);
-    }
-    cout << "Expression parser:\n";
-
-    Tokenizer tokenizer("3 + 4 * (5 - 2)");
-    Token token = tokenizer.nextToken();
-    while (token.type != END)
-    {
-        // Process the character
-        cout << "[token] type=" << tokenTypeToStr(token.type) << " value=" << token.value << endl;
-        token = tokenizer.nextToken();
-    }
     return 0;
 }
-
