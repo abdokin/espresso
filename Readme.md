@@ -11,7 +11,8 @@ integer     → [0-9]+
 decimal     → [0-9]+ '.' [0-9]+
 variable    → [a-zA-Z]
 ```
-
+## Basic Representation
+```
 variable {
     string name;
 }
@@ -39,7 +40,7 @@ expression {
     op,
     term
 }
-
+```
 ## Tokens 
 ```
 PLUS      -> '+'
